@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-APP_ID := app-skeleton-python
-APP_NAME := SkeletonApp
-APP_VERSION := 3.0.2
-JSON_INFO := "{\"id\":\"$(APP_ID)\",\"name\":\"$(APP_NAME)\",\"daemon_config_name\":\"manual_install\",\"version\":\"$(APP_VERSION)\",\"secret\":\"12345\",\"port\":9030}"
+APP_ID := text_anonymizer
+APP_NAME := TextAnonymizer
+APP_VERSION := 0.1.0
+JSON_INFO := "{\"id\":\"$(APP_ID)\",\"name\":\"$(APP_NAME)\",\"daemon_config_name\":\"manual_install\",\"version\":\"$(APP_VERSION)\",\"secret\":\"12345\",\"port\":9040}"
 
 
 .PHONY: help

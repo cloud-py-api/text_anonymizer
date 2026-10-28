@@ -1,41 +1,28 @@
 <?xml version="1.0"?>
 <info>
-	<id>app-skeleton-python</id>
-	<name>App Skeleton</name>
-	<summary>Nextcloud Python Application Skeleton</summary>
+	<id>text_anonymizer</id>
+	<name>Text Anonymizer</name>
+	<summary>Anonymize Text and Text Files</summary>
 	<description>
-	<![CDATA[Simplest skeleton of the Nextcloud application written in python]]>
+	<![CDATA[Anonymize Text and Text Files]]>
 	</description>
-	<version>3.0.3</version>
-	<licence>MIT</licence>
-	<author mail="bigcat88@icloud.com" homepage="https://github.com/bigcat88">Alexander Piskun</author>
-	<namespace>PyAppV2_skeleton</namespace>
+	<version>0.1.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="contact@edward.ly" homepage="https://edward.ly/">Edward Ly</author>
+	<namespace>TextAnonymizer</namespace>
 	<category>tools</category>
-	<website>https://github.com/nextcloud/app-skeleton-python</website>
-	<bugs>https://github.com/nextcloud/app-skeleton-python/issues</bugs>
-	<repository type="git">https://github.com/nextcloud/app-skeleton-python</repository>
+	<website>https://github.com/nextcloud/text_anonymizer</website>
+	<bugs>https://github.com/nextcloud/text_anonymizer/issues</bugs>
+	<repository type="git">https://github.com/nextcloud/text_anonymizer</repository>
 	<dependencies>
-		<nextcloud min-version="31" max-version="35"/>
+		<nextcloud min-version="31" max-version="36"/>
 	</dependencies>
 	<external-app>
 		<docker-install>
 			<registry>ghcr.io</registry>
-			<image>nextcloud/app-skeleton-python</image>
+			<image>nextcloud/text_anonymizer</image>
 			<image-tag>latest</image-tag>
 		</docker-install>
-		<environment-variables>
-			<variable>
-				<name>TEST_ENV_1</name>
-				<display-name>Test environment with default value</display-name>
-				<description>Test environment with default value</description>
-				<default>0</default>
-			</variable>
-			<variable>
-				<name>TEST_ENV_2</name>
-				<display-name>Test environment without default value</display-name>
-				<description>Test environment without default value</description>
-			</variable>
-		</environment-variables>
 		<routes>
 			<route>
 				<url>^/public$</url>
