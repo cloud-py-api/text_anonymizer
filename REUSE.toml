@@ -16,3 +16,9 @@ path = ["l10n/**.js", "l10n/**.json", "translationfiles/**/context_agent.po"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Nextcloud GmbH and Nextcloud contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = ["ex_app/img/icon.svg"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Jeff Anders <https://jeffanders.co/>"
+SPDX-License-Identifier = "Apache-2.0"
