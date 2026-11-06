@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Nextcloud Python App Skeleton repository
 
 To make it easier to create new Nextcloud applications using Python,

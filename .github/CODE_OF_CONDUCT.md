@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Code of Conduct
 
 Be openness, as well as friendly and didactic in discussions.
