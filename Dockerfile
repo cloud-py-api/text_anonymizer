@@ -10,10 +10,29 @@ FROM python:3.12-slim-bookworm AS builder
 RUN apt-get update && apt-get install -y curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies using a cache mount.
-COPY requirements.txt /
+# Install Poetry into its own virtualenv so it is not copied into the final image.
+ARG POETRY_VERSION=2.4.1
+ENV POETRY_HOME=/opt/poetry \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python3 -m pip install --root-user-action=ignore -r requirements.txt && rm requirements.txt
+    python3 -m venv "${POETRY_HOME}" && \
+    "${POETRY_HOME}/bin/pip" install "poetry==${POETRY_VERSION}"
+
+# Install the locked runtime dependencies into the system interpreter (/usr/local).
+COPY pyproject.toml poetry.lock /build/
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    cd /build && "${POETRY_HOME}/bin/poetry" install --only main --no-root && \
+    rm -rf /build
+
+# Download and install the spaCy model used by Presidio's analyzer with checksum verification.
+# Model version and checksum - update both when upgrading (must be compatible with the locked spaCy version).
+ARG SPACY_MODEL_VERSION=3.8.0
+ARG SPACY_MODEL_SHA256=293e9547a655b25499198ab15a525b05b9407a75f10255e405e8c3854329ab63
+RUN --mount=type=cache,target=/root/.cache/pip \
+    SPACY_MODEL_URL="https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-${SPACY_MODEL_VERSION}/en_core_web_lg-${SPACY_MODEL_VERSION}-py3-none-any.whl"; \
+    python3 -m pip install --root-user-action=ignore --no-deps \
+        "en_core_web_lg @ ${SPACY_MODEL_URL}#sha256=${SPACY_MODEL_SHA256}"
 
 # Download and install FRP client with checksum verification
 # FRP version and checksums - update these when upgrading

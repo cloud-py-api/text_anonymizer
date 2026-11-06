@@ -26,11 +26,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install from source
-        run: |
-          python3 -m pip install -r requirements.txt
+      - name: Install Poetry
+        run: pipx install poetry==2.4.1
+
+      - name: Install dependencies
+        run: poetry install --with dev --no-root
 
       - name: Run Analysis
-        run: |
-          python3 -m pip install pylint
-          python3 -m pylint --recursive=y "ex_app/lib/"
+        run: poetry run pylint --recursive=y "ex_app/lib/"
