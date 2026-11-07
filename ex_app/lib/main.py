@@ -223,10 +223,16 @@ async def wait_for_trigger(timeout: float) -> bool:
 
 
 async def process_task(nc: AsyncNextcloudApp, task: dict[str, Any]) -> None:
+    loop = asyncio.get_running_loop()
+
+    def on_progress(percent: float) -> None:
+        # Wait for each update, as Nextcloud marks a task as running again if its progress arrives after its result.
+        asyncio.run_coroutine_threadsafe(nc.providers.task_processing.set_progress(task["id"], percent), loop).result()
+
     try:
         handler = TASK_HANDLERS[task["type"]]
         # Presidio is CPU-bound, so it runs in a worker thread to keep the event loop responsive.
-        output = await asyncio.to_thread(handler, task["input"]["input"])
+        output = await asyncio.to_thread(handler, task["input"]["input"], on_progress=on_progress)
     except Exception as e:
         await nc.log(LogLvl.ERROR, f"Failed to process task {task['id']}: {e}")
         await nc.providers.task_processing.report_result(
