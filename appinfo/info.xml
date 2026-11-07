@@ -29,31 +29,6 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 		</docker-install>
 		<routes>
 			<route>
-				<url>^/public$</url>
-				<verb>GET</verb>
-				<access_level>PUBLIC</access_level>
-			</route>
-			<route>
-				<url>^/user$</url>
-				<verb>GET</verb>
-				<access_level>USER</access_level>
-			</route>
-			<route>
-				<url>^/admin$</url>
-				<verb>GET</verb>
-				<access_level>ADMIN</access_level>
-			</route>
-			<route>
-				<url>^/$</url>
-				<verb>GET</verb>
-				<access_level>USER</access_level>
-			</route>
-			<route>
-				<url>^/ws$</url>
-				<verb>GET</verb>
-				<access_level>USER</access_level>
-			</route>
-			<route>
 				<url>^/redact_file$</url>
 				<verb>POST</verb>
 				<access_level>USER</access_level>
