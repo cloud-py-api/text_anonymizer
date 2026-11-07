@@ -53,6 +53,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 				<verb>GET</verb>
 				<access_level>USER</access_level>
 			</route>
+			<route>
+				<url>^/redact_file$</url>
+				<verb>POST</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^/img/icon\.svg$</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
 		</routes>
 	</external-app>
 </info>
