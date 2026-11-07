@@ -5,14 +5,16 @@
 
 import asyncio
 import datetime
+import logging
 import os
 import posixpath
 import re
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
-from anonymizer import redact_text
+from anonymizer import detect_pii, redact_text
 from fastapi import BackgroundTasks, Depends, FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,11 +35,19 @@ from nc_py_api.ex_app.providers.task_processing import (
 )
 from nc_py_api.files import ActionFileInfo, ActionFileInfoEx
 
+LOGGER = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    set_handlers(app, enabled_handler)
+    set_handlers(app, enabled_handler, trigger_handler=trigger_handler)
+    if NextcloudApp().enabled_state:
+        APP_ENABLED.set()
+    worker = asyncio.create_task(process_tasks())
     yield
+    SHUTDOWN.set()
+    TRIGGER.set()
+    await worker
 
 
 APP = FastAPI(lifespan=lifespan)
@@ -183,6 +193,76 @@ TASK_PROCESSING_PROVIDERS = [
     (DETECT_PII_PROVIDER, DETECT_PII_TASK_TYPE),
     (REDACT_PII_PROVIDER, REDACT_PII_TASK_TYPE),
 ]
+TASK_HANDLERS = {
+    DETECT_PII_TASK_TYPE.id: detect_pii,
+    REDACT_PII_TASK_TYPE.id: redact_text,
+}
+
+# Set by `enabled_handler`, which runs in a worker thread.
+APP_ENABLED = threading.Event()
+# Set when Nextcloud announces a new task (Nextcloud 33+) and on shutdown.
+TRIGGER = asyncio.Event()
+SHUTDOWN = asyncio.Event()
+POLL_INTERVAL = 5
+# Once Nextcloud has sent a trigger, polling is only a fallback for missed triggers.
+POLL_INTERVAL_WITH_TRIGGER = 5 * 60
+POLL_INTERVAL_ON_ERROR = 10
+
+
+async def trigger_handler(_provider_id: str) -> None:
+    TRIGGER.set()
+
+
+async def wait_for_trigger(timeout: float) -> bool:
+    """Wait until a trigger arrives or ``timeout`` seconds pass, and return whether a trigger arrived."""
+    try:
+        await asyncio.wait_for(TRIGGER.wait(), timeout)
+    except TimeoutError:
+        return False
+    return True
+
+
+async def process_task(nc: AsyncNextcloudApp, task: dict[str, Any]) -> None:
+    loop = asyncio.get_running_loop()
+
+    def on_progress(percent: float) -> None:
+        # Wait for each update, as Nextcloud marks a task as running again if its progress arrives after its result.
+        asyncio.run_coroutine_threadsafe(nc.providers.task_processing.set_progress(task["id"], percent), loop).result()
+
+    try:
+        handler = TASK_HANDLERS[task["type"]]
+        # Presidio is CPU-bound, so it runs in a worker thread to keep the event loop responsive.
+        output = await asyncio.to_thread(handler, task["input"]["input"], on_progress=on_progress)
+    except Exception as e:
+        await nc.log(LogLvl.ERROR, f"Failed to process task {task['id']}: {e}")
+        await nc.providers.task_processing.report_result(
+            task["id"], error_message=str(e), user_facing_error_message="The text could not be processed."
+        )
+        return
+    await nc.providers.task_processing.report_result(task["id"], {"output": output})
+
+
+async def process_tasks() -> None:
+    """Fetch and process tasks for all providers one at a time until shutdown."""
+    nc = AsyncNextcloudApp()
+    provider_ids = [provider.id for provider, _ in TASK_PROCESSING_PROVIDERS]
+    task_types = list(TASK_HANDLERS)
+    poll_interval = POLL_INTERVAL
+    while not SHUTDOWN.is_set():
+        TRIGGER.clear()
+        if not APP_ENABLED.is_set():
+            await wait_for_trigger(POLL_INTERVAL)
+            continue
+        try:
+            response = await nc.providers.task_processing.next_task(provider_ids, task_types)
+            if response:
+                await process_task(nc, response["task"])
+            elif await wait_for_trigger(poll_interval):
+                poll_interval = POLL_INTERVAL_WITH_TRIGGER
+        except Exception:
+            LOGGER.exception("Failed to fetch or process the next task")
+            await wait_for_trigger(POLL_INTERVAL_ON_ERROR)
+
 
 REDACT_FILE_ACTION_NAME = "redact_pii_file"
 REDACT_FILE_ACTION_HANDLER = "/redact_file"
@@ -274,7 +354,9 @@ def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
                 icon="img/icon.svg",
                 order=REDACT_FILE_ACTION_ORDER,
             )
+            APP_ENABLED.set()
         else:
+            APP_ENABLED.clear()
             for provider, _ in TASK_PROCESSING_PROVIDERS:
                 nc.providers.task_processing.unregister(provider.id)
             nc.ui.files_dropdown_menu.unregister(REDACT_FILE_ACTION_NAME)
