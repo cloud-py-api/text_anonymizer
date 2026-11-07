@@ -15,6 +15,7 @@ from typing import Annotated
 from anonymizer import redact_text
 from fastapi import BackgroundTasks, Depends, FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from nc_py_api import AsyncNextcloudApp, NextcloudApp, NextcloudException
 from nc_py_api.ex_app import (
     AppAPIAuthMiddleware,
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
 
 APP = FastAPI(lifespan=lifespan)
 APP.add_middleware(AppAPIAuthMiddleware)  # set global AppAPI authentication middleware
+APP.mount("/img", StaticFiles(directory=Path(__file__).parent.parent / "img"), name="img")
 
 # Build the WebSocket URL dynamically using the NextcloudApp configuration.
 WS_URL = NextcloudApp().app_cfg.endpoint + "/exapps/app-skeleton-python/ws"
