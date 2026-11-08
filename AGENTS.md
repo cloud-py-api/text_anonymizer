@@ -7,9 +7,9 @@
 
 ## What Nextcloud Text Anonymizer is
 
-The Nextcloud Text Anonymizer is a Nextcloud ExApp that provides a new TaskProcessing task for detecting and redacting personal and sensitive information from input text.
+The Nextcloud Text Anonymizer is a Nextcloud ExApp that provides new TaskProcessing tasks for detecting and redacting personal and sensitive information from input text.
 
-Text files in Nextcloud can also access this task from each of their dropdown menus.
+Text files in Nextcloud can also access this task from each of their file dropdown menus.
 
 ## Building
 
@@ -18,6 +18,9 @@ For building and running the ExApp for development:
 ```bash
 # Activate the virtual environment
 $(poetry env activate)
+
+# Install dependencies
+poetry install
 
 # Start the app server
 APP_HOST=0.0.0.0 APP_ID=text_anonymizer APP_PORT=9040 APP_SECRET=12345 APP_VERSION=0.1.0 NEXTCLOUD_URL=http://nextcloud.local COMPUTE_DEVICE=CPU python3 ex_app/lib/main.py
