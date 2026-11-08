@@ -31,6 +31,14 @@ It uses [Presidio](https://presidio.dataprivacystack.org/) under the hood, with 
 - **Picks up tasks quickly.** On Nextcloud 33 and later, Nextcloud notifies the app as soon as a new task is
   scheduled. On older versions, the app checks for new tasks every 5 seconds.
 
+## Screenshots
+
+![Redact sensitive text task in the Nextcloud Assistant, with each PII entity replaced by a placeholder](screenshots/screenshot_assistant_redact.png)
+
+![Detect sensitive text task in the Nextcloud Assistant, listing the PII entities found in a sample text](screenshots/screenshot_assistant_detect.png)
+
+![Redact text action in the Files action menu, next to previously created redacted copies](screenshots/screenshot_file_action.png)
+
 ## Limitations
 
 - **English only.** Texts in other languages are analyzed with the English model and recognizers, so many entities
