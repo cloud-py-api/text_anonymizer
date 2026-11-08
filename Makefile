@@ -24,11 +24,21 @@ help:
 	@echo "  > They must be run from the host you are developing on, not in a Nextcloud container!"
 	@echo " "
 	@echo "  run31             installs $(APP_NAME) for Nextcloud 31"
+	@echo "  run32             installs $(APP_NAME) for Nextcloud 32"
+	@echo "  run33             installs $(APP_NAME) for Nextcloud 33"
+	@echo "  run34             installs $(APP_NAME) for Nextcloud 34"
+	@echo "  run35             installs $(APP_NAME) for Nextcloud 35"
+	@echo "  run36             installs $(APP_NAME) for Nextcloud 36"
 	@echo "  run               installs $(APP_NAME) for Nextcloud Latest"
 	@echo " "
 	@echo "  > Commands for manual registration of ExApp($(APP_NAME) should be running!):"
 	@echo " "
 	@echo "  register31        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
+	@echo "  register32        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
+	@echo "  register33        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
+	@echo "  register34        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
+	@echo "  register35        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
+	@echo "  register36        performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
 	@echo "  register          performs registration of running $(APP_NAME) into the 'manual_install' deploy daemon."
 
 
@@ -43,6 +53,36 @@ run31:
 	docker exec master-stable31-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
 		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
 
+.PHONY: run32
+run32:
+	docker exec master-stable32-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable32-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
+		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+
+.PHONY: run33
+run33:
+	docker exec master-stable33-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable33-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
+		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+
+.PHONY: run34
+run34:
+	docker exec master-stable34-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable34-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
+		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+
+.PHONY: run35
+run35:
+	docker exec master-stable35-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable35-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
+		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+
+.PHONY: run36
+run36:
+	docker exec master-stable36-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable36-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
+		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+
 .PHONY: run
 run:
 	docker exec master-nextcloud-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
@@ -53,6 +93,31 @@ run:
 register31:
 	docker exec master-stable31-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
 	docker exec master-stable31-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
+
+.PHONY: register32
+register32:
+	docker exec master-stable32-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable32-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
+
+.PHONY: register33
+register33:
+	docker exec master-stable33-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable33-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
+
+.PHONY: register34
+register34:
+	docker exec master-stable34-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable34-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
+
+.PHONY: register35
+register35:
+	docker exec master-stable35-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable35-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
+
+.PHONY: register36
+register36:
+	docker exec master-stable36-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
+	docker exec master-stable36-1 sudo -u www-data php occ app_api:app:register $(APP_ID) manual_install --json-info $(JSON_INFO) --wait-finish
 
 .PHONY: register
 register:
