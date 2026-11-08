@@ -6,9 +6,29 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 <info>
 	<id>text_anonymizer</id>
 	<name>Text Anonymizer</name>
-	<summary>Anonymize Text and Text Files</summary>
+	<summary>Redact sensitive information in text</summary>
 	<description>
-	<![CDATA[Anonymize Text and Text Files]]>
+	<![CDATA[Detect and redact personal and sensitive information (PII) in text and text files, for example before using the text in an AI prompt.
+
+Powered by [Presidio](https://presidio.dataprivacystack.org/).
+
+### Features
+
+- **Detect sensitive text**: a TaskProcessing task that lists each distinct PII entity found in a text.
+- **Redact sensitive text**: a TaskProcessing task that replaces each PII entity with a placeholder naming its type, e.g. `Call John at 555-123-4567` becomes `Call <PERSON> at <PHONE_NUMBER>`.
+- **Redact text files**: a "Redact text" action in Files that saves a redacted copy next to the original text file, which is left unchanged.
+- Detects names, email addresses, phone numbers, locations, dates, credit card numbers, IBANs, IP addresses, URLs and more.
+- Handles long texts and reports task progress.
+
+### Limitations
+
+- English only.
+- Detection is not perfect: some sensitive text may be missed and some harmless text may be redacted. Check the output before relying on it.
+- Redaction cannot be undone, and the detection task's output contains the sensitive values it found.
+- The Files action only supports UTF-8 encoded plain text files, not documents such as ODT, DOCX or PDF.
+- Tasks are processed one at a time on the CPU.
+- No settings yet.
+	]]>
 	</description>
 	<version>0.1.0</version>
 	<licence>AGPL-3.0-or-later</licence>
