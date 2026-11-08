@@ -5,11 +5,11 @@
 
 APP_ID := text_anonymizer
 APP_NAME := TextAnonymizer
-APP_VERSION := 0.1.0
+APP_VERSION := $$(xmlstarlet sel -t -v "//version" appinfo/info.xml)
 # Routes mirror appinfo/info.xml. access_level: 0 = PUBLIC, 1 = USER, 2 = ADMIN.
-route = {"url":"$(1)","verb":"$(2)","access_level":$(3),"headers_to_exclude":[],"bruteforce_protection":[]}
-ROUTES := [$(call route,^/redact_file$$,POST,1),$(call route,^/img/icon\\.svg$$,GET,1)]
-JSON_INFO := '{"id":"$(APP_ID)","name":"$(APP_NAME)","daemon_config_name":"manual_install","version":"$(APP_VERSION)","secret":"12345","port":9040,"routes":$(ROUTES)}'
+route = {\"url\":\"$(1)\",\"verb\":\"$(2)\",\"access_level\":$(3),\"headers_to_exclude\":[],\"bruteforce_protection\":[]}
+ROUTES := [$(call route,^/redact_file\$$,POST,1),$(call route,^/img/icon\\\\.svg\$$,GET,1)]
+JSON_INFO := "{\"id\":\"$(APP_ID)\",\"name\":\"$(APP_NAME)\",\"daemon_config_name\":\"manual_install\",\"version\":\"$(APP_VERSION)\",\"secret\":\"12345\",\"port\":9040,\"routes\":$(ROUTES)}"
 
 
 .PHONY: help
