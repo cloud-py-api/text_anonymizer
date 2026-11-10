@@ -3,3 +3,6 @@
 
 # Declare files that always have LF line endings on checkout
 * text eol=lf
+
+# ... except PNG images which should be treated as binary
+*.png binary

@@ -53,7 +53,7 @@ APP.add_middleware(AppAPIAuthMiddleware)  # set global AppAPI authentication mid
 APP.mount("/img", StaticFiles(directory=Path(__file__).parent.parent / "img"), name="img")
 
 DETECT_PII_TASK_TYPE = TaskType(
-    id="core:text2text:detect_pii",
+    id="text_anonymizer:detect_pii",
     name="Detect sensitive text",
     description="Check whether a text contains personally identifiable information (PII).",
     input_shape=[ShapeDescriptor(name="input", description="Text to check", shape_type=ShapeType.TEXT)],
@@ -66,20 +66,20 @@ DETECT_PII_TASK_TYPE = TaskType(
     ],
 )
 DETECT_PII_PROVIDER = TaskProcessingProvider(
-    id="text_anonymizer:detect_pii",
+    id=DETECT_PII_TASK_TYPE.id,
     name="TextAnonymizer PII Detector",
     task_type=DETECT_PII_TASK_TYPE.id,
 )
 
 REDACT_PII_TASK_TYPE = TaskType(
-    id="core:text2text:redact_pii",
+    id="text_anonymizer:redact_pii",
     name="Redact sensitive text",
     description="Replace all personally identifiable information (PII) in a text with placeholders.",
     input_shape=[ShapeDescriptor(name="input", description="Text to redact", shape_type=ShapeType.TEXT)],
     output_shape=[ShapeDescriptor(name="output", description="Redacted text", shape_type=ShapeType.TEXT)],
 )
 REDACT_PII_PROVIDER = TaskProcessingProvider(
-    id="text_anonymizer:redact_pii",
+    id=REDACT_PII_TASK_TYPE.id,
     name="TextAnonymizer PII Redactor",
     task_type=REDACT_PII_TASK_TYPE.id,
 )

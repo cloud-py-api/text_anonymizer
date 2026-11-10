@@ -25,11 +25,19 @@ It uses [Presidio](https://presidio.dataprivacystack.org/) under the hood, with 
   written as the user who started the action, so Nextcloud's usual file permissions apply.
 - **Detects Presidio's built-in entity types**, such as names, email addresses, phone numbers, locations, dates,
   credit card numbers, IBANs, IP addresses, URLs and several country-specific ID numbers. See Presidio's
-  [list of supported entities](https://microsoft.github.io/presidio/supported_entities/).
+  [list of supported entities](https://presidio.dataprivacystack.org/supported_entities/).
 - **Handles long texts.** Text is analyzed in chunks of up to 10,000 characters, split at line breaks or spaces where
   possible, and the task progress is reported to Nextcloud after each chunk.
 - **Picks up tasks quickly.** On Nextcloud 33 and later, Nextcloud notifies the app as soon as a new task is
   scheduled. On older versions, the app checks for new tasks every 5 seconds.
+
+## Screenshots
+
+![Redact sensitive text task in the Nextcloud Assistant, with each PII entity replaced by a placeholder](screenshots/screenshot_assistant_redact.png)
+
+![Detect sensitive text task in the Nextcloud Assistant, listing the PII entities found in a sample text](screenshots/screenshot_assistant_detect.png)
+
+![Redact text action in the Files action menu, next to previously created redacted copies](screenshots/screenshot_file_action.png)
 
 ## Limitations
 
@@ -64,8 +72,8 @@ $(poetry env activate)
 # Install dependencies
 poetry install
 
-# Start the app server (example)
-APP_HOST=0.0.0.0 APP_ID=text_anonymizer APP_PORT=9040 APP_SECRET=12345 APP_VERSION=0.1.0 NEXTCLOUD_URL=http://nextcloud.local COMPUTE_DEVICE=CPU python3 ex_app/lib/main.py
+# Start the app server
+APP_HOST=0.0.0.0 APP_ID=text_anonymizer APP_PORT=9040 APP_SECRET=12345 APP_VERSION=<APP_VERSION> NEXTCLOUD_URL=http://nextcloud.local COMPUTE_DEVICE=CPU python3 ex_app/lib/main.py
 
 # Register and enable the app in a local nextcloud-docker-dev environment
 make register
@@ -73,6 +81,6 @@ make register
 
 Running `make` without a target lists the targets for other Nextcloud versions.
 
-### License
+## License
 
 [AGPL-3.0-or-later](./LICENSES/AGPL-3.0-or-later.txt)

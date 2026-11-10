@@ -38,6 +38,9 @@ Powered by [Presidio](https://presidio.dataprivacystack.org/).
 	<website>https://github.com/nextcloud/text_anonymizer</website>
 	<bugs>https://github.com/nextcloud/text_anonymizer/issues</bugs>
 	<repository type="git">https://github.com/nextcloud/text_anonymizer</repository>
+	<screenshot>https://raw.githubusercontent.com/nextcloud/text_anonymizer/main/screenshots/screenshot_assistant_redact.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/nextcloud/text_anonymizer/main/screenshots/screenshot_assistant_detect.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/nextcloud/text_anonymizer/main/screenshots/screenshot_file_action.png</screenshot>
 	<dependencies>
 		<nextcloud min-version="31" max-version="36"/>
 	</dependencies>
