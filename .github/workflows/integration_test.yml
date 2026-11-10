@@ -1,0 +1,233 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Integration test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - stable*
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: text_anonymizer
+
+concurrency:
+  group: integration-test-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+
+    strategy:
+      # do not stop on another job's failure
+      fail-fast: false
+      matrix:
+        php-versions: [ '8.3' ]
+        server-versions: [ 'master', 'stable35', 'stable34', 'stable33', 'stable32', 'stable31' ]
+
+    name: Integration test on ☁️${{ matrix.server-versions }} 🐘${{ matrix.php-versions }}
+
+    env:
+      PYTHONUNBUFFERED: 1
+      APP_HOST: 0.0.0.0
+      APP_ID: text_anonymizer
+      APP_PORT: 9040
+      APP_SECRET: 12345
+      COMPUTE_DEVICE: CPU
+      NEXTCLOUD_URL: http://localhost:8080
+      CREDS: "admin:password"
+
+    steps:
+      - name: Checkout server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nextcloud/server
+          ref: ${{ matrix.server-versions }}
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up php ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, iconv, fileinfo, intl, sqlite, pdo_sqlite, gd, zip
+
+      - name: Checkout app
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ${{ env.APP_NAME }}
+          persist-credentials: false
+
+      - name: Checkout app_api
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: apps/app_api
+          repository: nextcloud/app_api
+          ref: ${{ matrix.server-versions == 'master' && 'main' || matrix.server-versions }}
+          persist-credentials: false
+
+      - name: Checkout notifications
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: apps/notifications
+          repository: nextcloud/notifications
+          ref: ${{ matrix.server-versions }}
+          persist-credentials: false
+
+      - name: Install notifications dependencies
+        working-directory: apps/notifications
+        run: composer install --no-dev
+
+      - name: Get app version
+        id: appinfo
+        uses: skjnldsv/xpath-action@f5b036e9d973f42c86324833fd00be90665fbf77 # v1.0.0
+        with:
+          filename: ${{ env.APP_NAME }}/appinfo/info.xml
+          expression: "/info/version/text()"
+
+      - name: Set up Nextcloud
+        run: |
+          mkdir data
+          ./occ maintenance:install --verbose --database=sqlite --database-name=nextcloud --admin-user admin --admin-pass password
+          ./occ app:enable -vvv -f app_api notifications
+          composer run serve &
+          timeout 60 bash -c 'until curl -sf http://localhost:8080/status.php; do sleep 1; done'
+
+      - name: Set up python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install app
+        working-directory: ${{ env.APP_NAME }}
+        run: |
+          # Poetry and spaCy model versions are taken from the Dockerfile so they stay in sync with the release image.
+          POETRY_VERSION=$(sed -n 's/^ARG POETRY_VERSION=//p' Dockerfile)
+          SPACY_MODEL_VERSION=$(sed -n 's/^ARG SPACY_MODEL_VERSION=//p' Dockerfile)
+          SPACY_MODEL_SHA256=$(sed -n 's/^ARG SPACY_MODEL_SHA256=//p' Dockerfile)
+          SPACY_MODEL_URL="https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-${SPACY_MODEL_VERSION}/en_core_web_lg-${SPACY_MODEL_VERSION}-py3-none-any.whl"
+          pipx install "poetry==${POETRY_VERSION}"
+          poetry env use python3.12
+          poetry install --only main
+          poetry run pip install --no-deps "en_core_web_lg @ ${SPACY_MODEL_URL}#sha256=${SPACY_MODEL_SHA256}"
+
+      - name: Start app
+        working-directory: ${{ env.APP_NAME }}
+        env:
+          APP_VERSION: ${{ fromJson(steps.appinfo.outputs.result).version }}
+        run: |
+          poetry run python3 ex_app/lib/main.py > backend_logs 2>&1 &
+          timeout 120 bash -c 'until curl -sf http://localhost:${APP_PORT}/heartbeat; do sleep 1; done'
+
+      - name: Register app
+        env:
+          APP_VERSION: ${{ fromJson(steps.appinfo.outputs.result).version }}
+        run: |
+          # Routes mirror appinfo/info.xml. access_level: 0 = PUBLIC, 1 = USER, 2 = ADMIN.
+          JSON_INFO=$(jq -cn --arg id "$APP_ID" --arg version "$APP_VERSION" --arg secret "$APP_SECRET" --argjson port "$APP_PORT" '{
+            id: $id,
+            name: "Text Anonymizer",
+            daemon_config_name: "manual_install",
+            version: $version,
+            secret: $secret,
+            port: $port,
+            routes: [
+              {url: "^/redact_file$", verb: "POST", access_level: 1, headers_to_exclude: [], bruteforce_protection: []},
+              {url: "^/img/icon\\.svg$", verb: "GET", access_level: 1, headers_to_exclude: [], bruteforce_protection: []}
+            ]
+          }')
+          ./occ app_api:daemon:register --net host manual_install "Manual Install" manual-install http localhost "$NEXTCLOUD_URL"
+          ./occ app_api:app:register "$APP_ID" manual_install --json-info "$JSON_INFO" --wait-finish
+
+      - name: Run TaskProcessing tasks
+        run: |
+          set -x
+          INPUT="My name is John Smith and my email address is john.smith@example.com."
+
+          # Schedules a task, waits for it to finish and prints its output.
+          run_task() {
+            local task task_id task_status
+            task=$(curl -sf -X POST -u "$CREDS" -H "OCS-APIRequest: true" -H "Content-Type: application/json" \
+              "$NEXTCLOUD_URL/ocs/v2.php/taskprocessing/schedule?format=json" \
+              --data-raw "$(jq -cn --arg type "$1" --arg input "$2" '{input: {input: $input}, type: $type, appId: "test", customId: ""}')")
+            echo "$task" >&2
+            task_id=$(echo "$task" | jq -r '.ocs.data.task.id')
+            for _ in $(seq 60); do
+              task=$(curl -sf -u "$CREDS" -H "OCS-APIRequest: true" "$NEXTCLOUD_URL/ocs/v2.php/taskprocessing/task/$task_id?format=json")
+              task_status=$(echo "$task" | jq -r '.ocs.data.task.status')
+              if [ "$task_status" == "STATUS_SUCCESSFUL" ] || [ "$task_status" == "STATUS_FAILED" ]; then
+                break
+              fi
+              sleep 5
+            done
+            echo "$task" >&2
+            [ "$task_status" == "STATUS_SUCCESSFUL" ] || return 1
+            echo "$task" | jq -r '.ocs.data.task.output.output'
+          }
+
+          DETECT_OUTPUT=$(run_task text_anonymizer:detect_pii "$INPUT")
+          echo "$DETECT_OUTPUT"
+          echo "$DETECT_OUTPUT" | grep -qx "PERSON: John Smith"
+          echo "$DETECT_OUTPUT" | grep -qx "EMAIL_ADDRESS: john.smith@example.com"
+
+          REDACT_OUTPUT=$(run_task text_anonymizer:redact_pii "$INPUT")
+          echo "$REDACT_OUTPUT"
+          echo "$REDACT_OUTPUT" | grep -qF "<PERSON>"
+          echo "$REDACT_OUTPUT" | grep -qF "<EMAIL_ADDRESS>"
+          if echo "$REDACT_OUTPUT" | grep -qE "John Smith|john\.smith@example\.com"; then exit 1; fi
+
+      - name: Run file action
+        run: |
+          set -x
+          DAV_URL="$NEXTCLOUD_URL/remote.php/dav/files/admin"
+          INPUT="My name is John Smith and my email address is john.smith@example.com."
+
+          echo "$INPUT" > notes.txt
+          curl -sf -u "$CREDS" -T notes.txt "$DAV_URL/notes.txt"
+
+          FILE_ID=$(curl -sf -u "$CREDS" -X PROPFIND \
+            -H "Depth: 0" \
+            -H "Content-Type: application/xml" \
+            --data '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><oc:fileid/></d:prop></d:propfind>' \
+            "$DAV_URL/notes.txt" \
+            | grep -oE '<oc:fileid>[0-9]+</oc:fileid>' \
+            | grep -oE '[0-9]+' \
+            | head -1)
+          echo "Uploaded file id: $FILE_ID"
+          [ -n "$FILE_ID" ]
+
+          # Same request the Files app sends through the AppAPI proxy when the action is clicked.
+          curl -sf -X POST -u "$CREDS" -H "OCS-APIRequest: true" -H "Content-Type: application/json" \
+            "$NEXTCLOUD_URL/index.php/apps/app_api/proxy/$APP_ID/redact_file" \
+            --data-raw "$(jq -cn --argjson fileId "$FILE_ID" --argjson size "$(stat -c %s notes.txt)" '{files: [{
+              fileId: $fileId, name: "notes.txt", directory: "/", etag: "", mime: "text/plain", fileType: "file",
+              size: $size, favorite: "false", permissions: 27, mtime: now | floor, userId: "admin"
+            }]}')"
+
+          REDACTED_URL="$DAV_URL/notes%20%28redacted%29.txt"
+          timeout 120 bash -c "until curl -sf -o /dev/null -u '$CREDS' '$REDACTED_URL'; do sleep 2; done"
+          REDACTED=$(curl -sf -u "$CREDS" "$REDACTED_URL")
+          echo "$REDACTED"
+          echo "$REDACTED" | grep -qF "<PERSON>"
+          echo "$REDACTED" | grep -qF "<EMAIL_ADDRESS>"
+          if echo "$REDACTED" | grep -qE "John Smith|john\.smith@example\.com"; then exit 1; fi
+
+          # The original file is left unchanged.
+          [ "$(curl -sf -u "$CREDS" "$DAV_URL/notes.txt")" == "$INPUT" ]
+
+          NOTIFICATIONS=$(curl -sf -u "$CREDS" -H "OCS-APIRequest: true" "$NEXTCLOUD_URL/ocs/v2.php/apps/notifications/api/v2/notifications?format=json")
+          echo "$NOTIFICATIONS"
+          echo "$NOTIFICATIONS" | jq -e '.ocs.data[] | select((.subject + " " + .subjectRich) | contains("Redacted copy of notes.txt saved as notes (redacted).txt"))'
+
+      - name: Show logs
+        if: always()
+        run: |
+          tail -n 50 data/nextcloud.log || echo "No Nextcloud logs"
+          echo '--------------------------------------------------'
+          cat ${{ env.APP_NAME }}/backend_logs || echo "No backend logs"
