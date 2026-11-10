@@ -3,7 +3,7 @@
 version = 1
 SPDX-PackageName = "text_anonymizer"
 SPDX-PackageSupplier = "2026 Nextcloud GmbH and Nextcloud contributors"
-SPDX-PackageDownloadLocation = "https://github.com/cloud-py-api/text_anonymizer"
+SPDX-PackageDownloadLocation = "https://github.com/nextcloud/text_anonymizer"
 
 [[annotations]]
 path = "poetry.lock"
